@@ -35,8 +35,12 @@ protected:
 	void about();
 
 protected:
-	void readUsers();
-	void writeUsers();
+	void encryptUsers();
+	void decryptUsers();
+
+	void readUsersTemp();
+	void writeUsersTemp();
+	void initUsersTemp();
 
 protected:
 	bool hasUser( const std::string & _userLogin ) const;

@@ -5,6 +5,10 @@
 # Creates app.exe with the listed sources (main.cxx)
 # Adds sources to the Solution Explorer
 set(MY_PROJECT_SOURCES
+    ErrorHandlerHelper.h
+    ErrorHandlerHelper.cpp
+    CryptoHelper.h
+    CryptoHelper.cpp
     User.h
     User.cpp
     App.h
