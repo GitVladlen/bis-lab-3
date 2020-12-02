@@ -45,13 +45,7 @@ bool MyEncryptFile(
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
         NULL );
-    if( INVALID_HANDLE_VALUE != hSourceFile )
-    {
-        _tprintf(
-            TEXT( "The source plaintext file, %s, is open. \n" ),
-            pszSourceFile );
-    }
-    else
+    if( INVALID_HANDLE_VALUE == hSourceFile )
     {
         MyHandleError(
             TEXT( "Error opening source plaintext file!\n" ),
@@ -69,13 +63,7 @@ bool MyEncryptFile(
         OPEN_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         NULL );
-    if( INVALID_HANDLE_VALUE != hDestinationFile )
-    {
-        _tprintf(
-            TEXT( "The destination file, %s, is open. \n" ),
-            pszDestinationFile );
-    }
-    else
+    if( INVALID_HANDLE_VALUE == hDestinationFile )
     {
         MyHandleError(
             TEXT( "Error opening destination file!\n" ),
@@ -90,12 +78,7 @@ bool MyEncryptFile(
         NULL,
         NULL,
         ENCRYPT_PROV_TYPE,
-        0 ) )
-    {
-        _tprintf(
-            TEXT( "A cryptographic provider has been acquired. \n" ) );
-    }
-    else
+        0 ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptAcquireContext!\n" ),
@@ -103,251 +86,55 @@ bool MyEncryptFile(
         goto Exit_MyEncryptFile;
     }
 
-    //---------------------------------------------------------------
-    // Create the session key.
-    //if( !pszPassword || !pszPassword[0] )
-    //{
-    //    //-----------------------------------------------------------
-    //    // No password was passed.
-    //    // Encrypt the file with a random session key, and write the 
-    //    // key to a file. 
+    //-----------------------------------------------------------
+    // The file will be encrypted with a session key derived 
+    // from a password.
+    // The session key will be recreated when the file is 
+    // decrypted only if the password used to create the key is 
+    // available. 
 
-    //    //-----------------------------------------------------------
-    //    // Create a random session key. 
-    //    if( CryptGenKey(
-    //        hCryptProv,
-    //        ENCRYPT_DATA_ALGORITHM,
-    //        KEYLENGTH | CRYPT_EXPORTABLE,
-    //        &hKey ) )
-    //    {
-    //        _tprintf( TEXT( "A session key has been created. \n" ) );
-    //    }
-    //    else
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error during CryptGenKey. \n" ),
-    //            GetLastError() );
-    //        goto Exit_MyEncryptFile;
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Get the handle to the exchange public key. 
-    //    if( CryptGetUserKey(
-    //        hCryptProv,
-    //        AT_KEYEXCHANGE,
-    //        &hXchgKey ) )
-    //    {
-    //        _tprintf(
-    //            TEXT( "The user public key has been retrieved. \n" ) );
-    //    }
-    //    else
-    //    {
-    //        if( NTE_NO_KEY == GetLastError() )
-    //        {
-    //            // No exchange key exists. Try to create one.
-    //            if( !CryptGenKey(
-    //                hCryptProv,
-    //                AT_KEYEXCHANGE,
-    //                CRYPT_EXPORTABLE,
-    //                &hXchgKey ) )
-    //            {
-    //                MyHandleError(
-    //                    TEXT( "Could not create "
-    //                        "a user public key.\n" ),
-    //                    GetLastError() );
-    //                goto Exit_MyEncryptFile;
-    //            }
-    //        }
-    //        else
-    //        {
-    //            MyHandleError(
-    //                TEXT( "User public key is not available and may " )
-    //                TEXT( "not exist.\n" ),
-    //                GetLastError() );
-    //            goto Exit_MyEncryptFile;
-    //        }
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Determine size of the key BLOB, and allocate memory. 
-    //    if( CryptExportKey(
-    //        hKey,
-    //        hXchgKey,
-    //        SIMPLEBLOB,
-    //        0,
-    //        NULL,
-    //        &dwKeyBlobLen ) )
-    //    {
-    //        _tprintf(
-    //            TEXT( "The key BLOB is %d bytes long. \n" ),
-    //            dwKeyBlobLen );
-    //    }
-    //    else
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error computing BLOB length! \n" ),
-    //            GetLastError() );
-    //        goto Exit_MyEncryptFile;
-    //    }
-
-    //    if( pbKeyBlob = (BYTE *)malloc( dwKeyBlobLen ) )
-    //    {
-    //        _tprintf(
-    //            TEXT( "Memory is allocated for the key BLOB. \n" ) );
-    //    }
-    //    else
-    //    {
-    //        MyHandleError( TEXT( "Out of memory. \n" ), E_OUTOFMEMORY );
-    //        goto Exit_MyEncryptFile;
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Encrypt and export the session key into a simple key 
-    //    // BLOB. 
-    //    if( CryptExportKey(
-    //        hKey,
-    //        hXchgKey,
-    //        SIMPLEBLOB,
-    //        0,
-    //        pbKeyBlob,
-    //        &dwKeyBlobLen ) )
-    //    {
-    //        _tprintf( TEXT( "The key has been exported. \n" ) );
-    //    }
-    //    else
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error during CryptExportKey!\n" ),
-    //            GetLastError() );
-    //        goto Exit_MyEncryptFile;
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Release the key exchange key handle. 
-    //    if( hXchgKey )
-    //    {
-    //        if( !(CryptDestroyKey( hXchgKey )) )
-    //        {
-    //            MyHandleError(
-    //                TEXT( "Error during CryptDestroyKey.\n" ),
-    //                GetLastError() );
-    //            goto Exit_MyEncryptFile;
-    //        }
-
-    //        hXchgKey = 0;
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Write the size of the key BLOB to the destination file. 
-    //    if( !WriteFile(
-    //        hDestinationFile,
-    //        &dwKeyBlobLen,
-    //        sizeof( DWORD ),
-    //        &dwCount,
-    //        NULL ) )
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error writing header.\n" ),
-    //            GetLastError() );
-    //        goto Exit_MyEncryptFile;
-    //    }
-    //    else
-    //    {
-    //        _tprintf( TEXT( "A file header has been written. \n" ) );
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Write the key BLOB to the destination file. 
-    //    if( !WriteFile(
-    //        hDestinationFile,
-    //        pbKeyBlob,
-    //        dwKeyBlobLen,
-    //        &dwCount,
-    //        NULL ) )
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error writing header.\n" ),
-    //            GetLastError() );
-    //        goto Exit_MyEncryptFile;
-    //    }
-    //    else
-    //    {
-    //        _tprintf(
-    //            TEXT( "The key BLOB has been written to the " )
-    //            TEXT( "file. \n" ) );
-    //    }
-
-    //    // Free memory.
-    //    free( pbKeyBlob );
-    //}
-    //else
+    //-----------------------------------------------------------
+    // Create a hash object. 
+    if( CryptCreateHash(
+        hCryptProv,
+        ENCRYPT_KEY_ALGORITHM,
+        0,
+        0,
+        &hHash ) == false )
     {
+        MyHandleError(
+            TEXT( "Error during CryptCreateHash!\n" ),
+            GetLastError() );
+        goto Exit_MyEncryptFile;
+    }
 
-        //-----------------------------------------------------------
-        // The file will be encrypted with a session key derived 
-        // from a password.
-        // The session key will be recreated when the file is 
-        // decrypted only if the password used to create the key is 
-        // available. 
+    //-----------------------------------------------------------
+    // Hash the password. 
+    if( CryptHashData(
+        hHash,
+        (BYTE *)pszPassword,
+        lstrlen( pszPassword ),
+        0 ) == false )
+    {
+        MyHandleError(
+            TEXT( "Error during CryptHashData. \n" ),
+            GetLastError() );
+        goto Exit_MyEncryptFile;
+    }
 
-        //-----------------------------------------------------------
-        // Create a hash object. 
-        if( CryptCreateHash(
-            hCryptProv,
-            ENCRYPT_KEY_ALGORITHM,
-            0,
-            0,
-            &hHash ) )
-        {
-            _tprintf( TEXT( "A hash object has been created. \n" ) );
-        }
-        else
-        {
-            MyHandleError(
-                TEXT( "Error during CryptCreateHash!\n" ),
-                GetLastError() );
-            goto Exit_MyEncryptFile;
-        }
-
-        //-----------------------------------------------------------
-        // Hash the password. 
-        if( CryptHashData(
-            hHash,
-            (BYTE *)pszPassword,
-            lstrlen( pszPassword ),
-            0 ) )
-        {
-            _tprintf(
-                TEXT( "The password has been added to the hash. \n" ) );
-        }
-        else
-        {
-            MyHandleError(
-                TEXT( "Error during CryptHashData. \n" ),
-                GetLastError() );
-            goto Exit_MyEncryptFile;
-        }
-
-        //-----------------------------------------------------------
-        // Derive a session key from the hash object. 
-        if( CryptDeriveKey(
-            hCryptProv,
-            ENCRYPT_DATA_ALGORITHM,
-            hHash,
-            CRYPT_EXPORTABLE | CRYPT_CREATE_SALT,
-            &hKey ) )
-        {
-            _tprintf(
-                TEXT( "An encryption key is derived from the " )
-                TEXT( "password hash. \n" ) );
-        }
-        else
-        {
-            MyHandleError(
-                TEXT( "Error during CryptDeriveKey!\n" ),
-                GetLastError() );
-            goto Exit_MyEncryptFile;
-        }
+    //-----------------------------------------------------------
+    // Derive a session key from the hash object. 
+    if( CryptDeriveKey(
+        hCryptProv,
+        ENCRYPT_DATA_ALGORITHM,
+        hHash,
+        CRYPT_EXPORTABLE | CRYPT_CREATE_SALT,
+        &hKey ) == false )
+    {
+        MyHandleError(
+            TEXT( "Error during CryptDeriveKey!\n" ),
+            GetLastError() );
+        goto Exit_MyEncryptFile;
     }
 
     //---------------------------------------------------------------
@@ -375,12 +162,7 @@ bool MyEncryptFile(
 
     //---------------------------------------------------------------
     // Allocate memory. 
-    if( pbBuffer = (BYTE *)malloc( dwBufferLen ) )
-    {
-        _tprintf(
-            TEXT( "Memory has been allocated for the buffer. \n" ) );
-    }
-    else
+    if( (pbBuffer = (BYTE *)malloc( dwBufferLen )) == false )
     {
         MyHandleError( TEXT( "Out of memory. \n" ), E_OUTOFMEMORY );
         goto Exit_MyEncryptFile;
@@ -401,9 +183,9 @@ bool MyEncryptFile(
             &dwCount,
             NULL ) )
         {
-            MyHandleError(
-                TEXT( "Error reading plaintext!\n" ),
-                GetLastError() );
+            //MyHandleError(
+            //    TEXT( "Error reading plaintext!\n" ),
+            //    GetLastError() );
             goto Exit_MyEncryptFile;
         }
 
@@ -514,11 +296,6 @@ Exit_MyEncryptFile:
     return fReturn;
 } // End Encryptfile.
 
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////
-
 //-------------------------------------------------------------------
 // Code for the function MyDecryptFile called by main.
 //-------------------------------------------------------------------
@@ -558,13 +335,7 @@ bool MyDecryptFile(
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
         NULL );
-    if( INVALID_HANDLE_VALUE != hSourceFile )
-    {
-        _tprintf(
-            TEXT( "The source encrypted file, %s, is open. \n" ),
-            pszSourceFile );
-    }
-    else
+    if( INVALID_HANDLE_VALUE == hSourceFile )
     {
         MyHandleError(
             TEXT( "Error opening source plaintext file!\n" ),
@@ -582,13 +353,7 @@ bool MyDecryptFile(
         OPEN_ALWAYS,
         FILE_ATTRIBUTE_NORMAL,
         NULL );
-    if( INVALID_HANDLE_VALUE != hDestinationFile )
-    {
-        _tprintf(
-            TEXT( "The destination file, %s, is open. \n" ),
-            pszDestinationFile );
-    }
-    else
+    if( INVALID_HANDLE_VALUE == hDestinationFile )
     {
         MyHandleError(
             TEXT( "Error opening destination file!\n" ),
@@ -603,12 +368,7 @@ bool MyDecryptFile(
         NULL,
         NULL,
         ENCRYPT_PROV_TYPE,
-        0 ) )
-    {
-        _tprintf(
-            TEXT( "A cryptographic provider has been acquired. \n" ) );
-    }
-    else
+        0 ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptAcquireContext!\n" ),
@@ -616,123 +376,52 @@ bool MyDecryptFile(
         goto Exit_MyDecryptFile;
     }
 
-    //---------------------------------------------------------------
-    // Create the session key.
-    //if( !pszPassword || !pszPassword[0] )
-    //{
-    //    //-----------------------------------------------------------
-    //    // Decrypt the file with the saved session key. 
+    //-----------------------------------------------------------
+    // Decrypt the file with a session key derived from a 
+    // password. 
 
-    //    DWORD dwKeyBlobLen;
-    //    PBYTE pbKeyBlob = NULL;
-
-    //    // Read the key BLOB length from the source file. 
-    //    if( !ReadFile(
-    //        hSourceFile,
-    //        &dwKeyBlobLen,
-    //        sizeof( DWORD ),
-    //        &dwCount,
-    //        NULL ) )
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error reading key BLOB length!\n" ),
-    //            GetLastError() );
-    //        goto Exit_MyDecryptFile;
-    //    }
-
-    //    // Allocate a buffer for the key BLOB.
-    //    if( !(pbKeyBlob = (PBYTE)malloc( dwKeyBlobLen )) )
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Memory allocation error.\n" ),
-    //            E_OUTOFMEMORY );
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Read the key BLOB from the source file. 
-    //    if( !ReadFile(
-    //        hSourceFile,
-    //        pbKeyBlob,
-    //        dwKeyBlobLen,
-    //        &dwCount,
-    //        NULL ) )
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error reading key BLOB length!\n" ),
-    //            GetLastError() );
-    //        goto Exit_MyDecryptFile;
-    //    }
-
-    //    //-----------------------------------------------------------
-    //    // Import the key BLOB into the CSP. 
-    //    if( !CryptImportKey(
-    //        hCryptProv,
-    //        pbKeyBlob,
-    //        dwKeyBlobLen,
-    //        0,
-    //        0,
-    //        &hKey ) )
-    //    {
-    //        MyHandleError(
-    //            TEXT( "Error during CryptImportKey!/n" ),
-    //            GetLastError() );
-    //        goto Exit_MyDecryptFile;
-    //    }
-
-    //    if( pbKeyBlob )
-    //    {
-    //        free( pbKeyBlob );
-    //    }
-    //}
-    //else
+    //-----------------------------------------------------------
+    // Create a hash object. 
+    if( !CryptCreateHash(
+        hCryptProv,
+        ENCRYPT_KEY_ALGORITHM,
+        0,
+        0,
+        &hHash ) )
     {
-        //-----------------------------------------------------------
-        // Decrypt the file with a session key derived from a 
-        // password. 
+        MyHandleError(
+            TEXT( "Error during CryptCreateHash!\n" ),
+            GetLastError() );
+        goto Exit_MyDecryptFile;
+    }
 
-        //-----------------------------------------------------------
-        // Create a hash object. 
-        if( !CryptCreateHash(
-            hCryptProv,
-            ENCRYPT_KEY_ALGORITHM,
-            0,
-            0,
-            &hHash ) )
-        {
-            MyHandleError(
-                TEXT( "Error during CryptCreateHash!\n" ),
-                GetLastError() );
-            goto Exit_MyDecryptFile;
-        }
+    //-----------------------------------------------------------
+    // Hash in the password data. 
+    if( !CryptHashData(
+        hHash,
+        (BYTE *)pszPassword,
+        lstrlen( pszPassword ),
+        0 ) )
+    {
+        MyHandleError(
+            TEXT( "Error during CryptHashData!\n" ),
+            GetLastError() );
+        goto Exit_MyDecryptFile;
+    }
 
-        //-----------------------------------------------------------
-        // Hash in the password data. 
-        if( !CryptHashData(
-            hHash,
-            (BYTE *)pszPassword,
-            lstrlen( pszPassword ),
-            0 ) )
-        {
-            MyHandleError(
-                TEXT( "Error during CryptHashData!\n" ),
-                GetLastError() );
-            goto Exit_MyDecryptFile;
-        }
-
-        //-----------------------------------------------------------
-        // Derive a session key from the hash object. 
-        if( !CryptDeriveKey(
-            hCryptProv,
-            ENCRYPT_DATA_ALGORITHM,
-            hHash,
-            CRYPT_EXPORTABLE | CRYPT_CREATE_SALT,
-            &hKey ) )
-        {
-            MyHandleError(
-                TEXT( "Error during CryptDeriveKey!\n" ),
-                GetLastError() );
-            goto Exit_MyDecryptFile;
-        }
+    //-----------------------------------------------------------
+    // Derive a session key from the hash object. 
+    if( !CryptDeriveKey(
+        hCryptProv,
+        ENCRYPT_DATA_ALGORITHM,
+        hHash,
+        CRYPT_EXPORTABLE | CRYPT_CREATE_SALT,
+        &hKey ) )
+    {
+        MyHandleError(
+            TEXT( "Error during CryptDeriveKey!\n" ),
+            GetLastError() );
+        goto Exit_MyDecryptFile;
     }
 
     //---------------------------------------------------------------

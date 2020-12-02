@@ -141,11 +141,7 @@ bool Check()
         subKey,
         valueName,
         &pbSignature,
-        &dwSigLen ) )
-    {
-        printf( "The signature has been read.\n" );
-    }
-    else
+        &dwSigLen ) == false )
     {
         MyHandleError(
             TEXT( "Error during ReadUserInfoFromRegistry.\n" ),
@@ -173,11 +169,7 @@ bool Check()
         NULL,
         NULL,
         PROV_RSA_FULL,
-        0 ) )
-    {
-        printf( "CSP context acquired.\n" );
-    }
-    else
+        0 ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptAcquireContext.\n" ),
@@ -196,11 +188,7 @@ bool Check()
     if( CryptGetUserKey(
         hProv,
         AT_SIGNATURE,
-        &hKey ) )
-    {
-        printf( "The signature key has been acquired. \n" );
-    }
-    else
+        &hKey ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptGetUserKey for signkey.\n" ),
@@ -223,11 +211,7 @@ bool Check()
         PUBLICKEYBLOB,
         0,
         NULL,
-        &dwBlobLen ) )
-    {
-        printf( "Size of the BLOB for the public key determined. \n" );
-    }
-    else
+        &dwBlobLen ) == false )
     {
         MyHandleError(
             TEXT( "Error computing BLOB length.\n" ),
@@ -241,11 +225,7 @@ bool Check()
     //-------------------------------------------------------------------
     // Allocate memory for the pbKeyBlob.
 
-    if( pbKeyBlob = (BYTE *)malloc( dwBlobLen ) )
-    {
-        printf( "Memory has been allocated for the BLOB. \n" );
-    }
-    else
+    if( (pbKeyBlob = (BYTE *)malloc( dwBlobLen )) == false )
     {
         MyHandleError(
             TEXT( "Out of memory.\n" ),
@@ -265,11 +245,7 @@ bool Check()
         PUBLICKEYBLOB,
         0,
         pbKeyBlob,
-        &dwBlobLen ) )
-    {
-        printf( "Contents have been written to the BLOB. \n" );
-    }
-    else
+        &dwBlobLen ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptExportKey.\n" ),
@@ -304,11 +280,7 @@ bool Check()
         dwBlobLen,
         0,
         0,
-        &hPubKey ) )
-    {
-        printf( "The key has been imported.\n" );
-    }
-    else
+        &hPubKey ) == false )
     {
         MyHandleError(
             TEXT( "Public key import failed.\n" ),
@@ -327,11 +299,7 @@ bool Check()
         CALG_MD5,
         0,
         0,
-        &hHash ) )
-    {
-        printf( "The hash object has been recreated. \n" );
-    }
-    else
+        &hHash ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptCreateHash.\n" ),
@@ -349,11 +317,7 @@ bool Check()
         hHash,
         pbBuffer,
         dwBufferLen,
-        0 ) )
-    {
-        printf( "The new hash has been created.\n" );
-    }
-    else
+        0 ) == false )
     {
         MyHandleError(
             TEXT( "Error during CryptHashData.\n" ),
@@ -375,11 +339,7 @@ bool Check()
         dwSigLen,
         hPubKey,
         NULL,
-        0 ) )
-    {
-        printf( "The signature has been verified.\n" );
-    }
-    else
+        0 ) == false )
     {
         printf( "Signature not validated!\n" );
         if( pbSignature )

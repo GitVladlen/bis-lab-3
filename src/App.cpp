@@ -9,6 +9,8 @@
 #include "CryptoHelper.h"
 #include "ErrorHandlerHelper.h"
 
+#include <windows.h>
+
 static const char * DEFAULT_ENCRYPTED_DATA_FILE_NAME = "users.txt";
 static const char * DEFAULT_DECRYPTED_DATA_FILE_NAME = "users_temp.txt";
 
@@ -27,9 +29,23 @@ App::~App()
 
 void App::run()
 {
-    this->readUsersTemp();
-    this->initUsersTemp();
-    this->decryptUsers();
+    if( this->decryptUsersFileToTempFile() == false )
+    {
+        this->resetUsers();
+        this->writeUsersTempFile();
+        this->encryptUsersTempFileToFile();
+    }
+    else
+    {
+        this->readUsersTempFile();
+    }
+
+    if( m_users.empty() == true )
+    {
+        this->resetUsers();
+        this->writeUsersTempFile();
+        this->encryptUsersTempFileToFile();
+    }
 
     m_isRunned = true;
 
@@ -37,13 +53,14 @@ void App::run()
     {
         this->mainMenu();
     }
+
+    this->writeUsersTempFile();
+    this->encryptUsersTempFileToFile();
+    this->deleteUsersTempFile();
 }
 
 void App::exit()
 {
-    this->writeUsersTemp();
-    this->decryptUsers();
-
     m_isRunned = false;
 }
 
@@ -389,7 +406,7 @@ void App::changePassword()
 
     currentUser.setPassword( newPassword );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 }
 
 void App::listUsers()
@@ -418,7 +435,7 @@ void App::blockUser()
 
     user.setIsBlocked( true );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 
     std::cout << "User with login '" << userLogin << "' is successfully blocked" << std::endl;
 }
@@ -439,7 +456,7 @@ void App::unblockUser()
 
     user.setIsBlocked( false );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
  
     std::cout << "User with login '" << userLogin << "' is successfully unblocked" << std::endl;
 }
@@ -460,7 +477,7 @@ void App::enableCheckUserPassword()
 
     user.setIsPasswordCheck( true );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 
     std::cout << "User with login '" << userLogin << "' is successfully enable password check" << std::endl;
 }
@@ -481,7 +498,7 @@ void App::disableCheckUserPassword()
 
     user.setIsPasswordCheck( false );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 
     std::cout << "User with login '" << userLogin << "' is successfully disable password check" << std::endl;
 }
@@ -502,7 +519,7 @@ void App::enableAdminUser()
 
     user.setIsAdmin( true);
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 
     std::cout << "User with login '" << userLogin << "' is successfully enabled admin" << std::endl;
 }
@@ -523,7 +540,7 @@ void App::disableAdminUser()
 
     user.setIsAdmin( false );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 
     std::cout << "User with login '" << userLogin << "' is successfully disabled admin" << std::endl;
 }
@@ -549,7 +566,7 @@ void App::createNewUser()
 
     m_users.emplace_back( user );
 
-    this->writeUsersTemp();
+    this->writeUsersTempFile();
 
     std::cout << "User with login '" << login << "' is successfully created" << std::endl;
 }
@@ -560,10 +577,10 @@ void App::about()
     std::cout << "Task: variant 5, password must contain letters, digits and punctuation marks" << std::endl;
 }
 
-void App::encryptUsers()
+void App::encryptUsersTempFileToFile()
 {
-    _tprintf(
-        TEXT( "ENCRYPT:\n" ) );
+    //_tprintf(
+    //    TEXT( "ENCRYPT:\n" ) );
     {
         LPTSTR pszSource = const_cast<char *>(DEFAULT_DECRYPTED_DATA_FILE_NAME);
         LPTSTR pszDestination = const_cast<char *>(DEFAULT_ENCRYPTED_DATA_FILE_NAME);
@@ -591,10 +608,10 @@ void App::encryptUsers()
 
 }
 
-void App::decryptUsers()
+bool App::decryptUsersFileToTempFile()
 {
-    _tprintf(
-        TEXT( "DECRYPT\n" ) );
+    //_tprintf(
+    //    TEXT( "DECRYPT\n" ) );
     {
         LPTSTR pszSource = const_cast<char *>(DEFAULT_ENCRYPTED_DATA_FILE_NAME);
         LPTSTR pszDestination = const_cast<char *>(DEFAULT_DECRYPTED_DATA_FILE_NAME);
@@ -606,22 +623,26 @@ void App::decryptUsers()
         if( MyDecryptFile( pszSource, pszDestination, pszPassword ) )
         {
             _tprintf(
-                TEXT( "Encryption of the file %s was successful. \n" ),
+                TEXT( "Decryption of the file %s was successful. \n" ),
                 pszSource );
             _tprintf(
-                TEXT( "The encrypted data is in file %s.\n" ),
+                TEXT( "The decrypted data is in file %s.\n" ),
                 pszDestination );
         }
         else
         {
             MyHandleError(
-                TEXT( "Error encrypting file!\n" ),
+                TEXT( "Error decrypting file!\n" ),
                 GetLastError() );
+
+            return false;
         }
+
+        return true;
     }
 }
 
-void App::readUsersTemp()
+void App::readUsersTempFile()
 {
     m_users.clear();
 
@@ -658,7 +679,7 @@ void App::readUsersTemp()
     inFile.close();
 }
 
-void App::writeUsersTemp()
+void App::writeUsersTempFile()
 {
     std::ofstream outFile( DEFAULT_DECRYPTED_DATA_FILE_NAME );
 
@@ -670,22 +691,28 @@ void App::writeUsersTemp()
     outFile.close();
 }
 
-void App::initUsersTemp()
+void App::resetUsers()
 {
-    if( m_users.empty() )
+    m_users.clear();
+
+    User user = User();
+
+    user.setLogin( DEFAULT_ADMIN_USER_LOGIN );
+    user.setPassword( DEFAULT_USER_EMPTY_PASSWORD );
+    user.setIsAdmin( true );
+    user.setIsBlocked( false );
+
+    m_users.emplace_back( user );
+}
+
+bool App::deleteUsersTempFile()
+{
+    if( DeleteFile( DEFAULT_DECRYPTED_DATA_FILE_NAME ) == false )
     {
-        User user = User();
-
-        user.setLogin( DEFAULT_ADMIN_USER_LOGIN );
-        user.setPassword( DEFAULT_USER_EMPTY_PASSWORD );
-        user.setIsAdmin( true );
-        user.setIsBlocked( false );
-
-        m_users.emplace_back( user );
-
-        this->writeUsersTemp();
-        this->encryptUsers();
+        return false;
     }
+
+    return true;
 }
 
 bool App::hasUser( const std::string & _userLogin ) const
